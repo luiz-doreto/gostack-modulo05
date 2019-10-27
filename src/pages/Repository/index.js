@@ -4,7 +4,13 @@ import PropTypes from 'prop-types';
 import api from '../../services/api';
 
 import Container from '../../components/Container';
-import { Loading, Owner, IssueList } from './styles';
+import {
+    Loading,
+    Owner,
+    IssueList,
+    IssueFilter,
+    IssuePaginate,
+} from './styles';
 
 export default class Repository extends Component {
     static propTypes = {
@@ -19,6 +25,13 @@ export default class Repository extends Component {
         repository: {},
         issues: [],
         loading: true,
+        filters: [
+            { state: 'all', name: 'Todas' },
+            { state: 'open', name: 'Abertas' },
+            { state: 'closed', name: 'Fechadas' },
+        ],
+        issuesState: 'open',
+        page: 1,
     };
 
     async componentDidMount() {
@@ -39,11 +52,39 @@ export default class Repository extends Component {
             repository: repository.data,
             issues: issues.data,
             loading: false,
+            repoName,
         });
     }
 
+    getIssues = (state = 'open', page) => {
+        const { repoName } = this.state;
+
+        return api.get(`/repos/${repoName}/issues`, {
+            params: {
+                page,
+                state,
+                per_page: 5,
+            },
+        });
+    };
+
+    handleFilter = async state => {
+        const issues = await this.getIssues(state);
+
+        this.setState({ issues: issues.data, issuesState: state, page: 1 });
+    };
+
+    handlePagination = async direction => {
+        const { issuesState, page } = this.state;
+        const toPage = direction === 'prev' ? page - 1 : page + 1;
+
+        const issues = await this.getIssues(issuesState, toPage);
+
+        this.setState({ issues: issues.data, page: toPage });
+    };
+
     render() {
-        const { repository, issues, loading } = this.state;
+        const { repository, issues, loading, filters, page } = this.state;
 
         if (loading) {
             return <Loading>Carregando</Loading>;
@@ -62,6 +103,17 @@ export default class Repository extends Component {
                 </Owner>
 
                 <IssueList>
+                    <IssueFilter>
+                        {filters.map(filter => (
+                            <button
+                                key={filter.state}
+                                type="button"
+                                onClick={() => this.handleFilter(filter.state)}
+                            >
+                                {filter.name}
+                            </button>
+                        ))}
+                    </IssueFilter>
                     {issues.map(issue => (
                         <li key={String(issue.id)}>
                             <img
@@ -81,6 +133,21 @@ export default class Repository extends Component {
                             </div>
                         </li>
                     ))}
+                    <IssuePaginate>
+                        <button
+                            type="button"
+                            onClick={() => this.handlePagination('prev')}
+                            disabled={page === 1}
+                        >
+                            {'< Anterior'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => this.handlePagination('next')}
+                        >
+                            {'Próxima >'}
+                        </button>
+                    </IssuePaginate>
                 </IssueList>
             </Container>
         );

@@ -5,13 +5,14 @@ import { Link } from 'react-router-dom';
 import api from '../../services/api';
 
 import Container from '../../components/Container';
-import { Form, SubmitButton, List } from './styles';
+import { Form, SubmitButton, List, InputRepo } from './styles';
 
 export default class Main extends Component {
     state = {
         newRepo: '',
         repositories: [],
         loading: false,
+        error: '',
     };
 
     componentDidMount() {
@@ -41,18 +42,33 @@ export default class Main extends Component {
 
         const { newRepo, repositories } = this.state;
 
-        const response = await api.get(`/repos/${newRepo}`);
-        const data = { name: response.data.full_name };
+        try {
+            const repo = repositories.find(r => r.name === newRepo);
+            if (repo) {
+                throw new Error('Repositório duplicado');
+            }
 
-        this.setState({
-            repositories: [...repositories, data],
-            newRepo: '',
-            loading: false,
-        });
+            const response = await api.get(`/repos/${newRepo}`);
+
+            const data = { name: response.data.full_name };
+
+            this.setState({
+                repositories: [...repositories, data],
+                newRepo: '',
+                error: '',
+                loading: false,
+            });
+        } catch (err) {
+            const error =
+                err.message === 'Request failed with status code 404'
+                    ? 'Repositório não encontrado'
+                    : err.message;
+            this.setState({ error, loading: false });
+        }
     };
 
     render() {
-        const { newRepo, loading, repositories } = this.state;
+        const { newRepo, loading, repositories, error } = this.state;
 
         return (
             <Container>
@@ -62,19 +78,24 @@ export default class Main extends Component {
                 </h1>
 
                 <Form onSubmit={this.handleSubmit}>
-                    <input
-                        type="text"
-                        placeholder="Adicionar repositório"
-                        value={newRepo}
-                        onChange={this.handleInputChange}
-                    />
-                    <SubmitButton loading={loading}>
-                        {loading ? (
-                            <FaSpinner color="#fff" size={14} />
-                        ) : (
-                            <FaPlus color="#fff" size={14} />
-                        )}
-                    </SubmitButton>
+                    <div>
+                        <InputRepo
+                            type="text"
+                            placeholder="Adicionar repositório"
+                            value={newRepo}
+                            onChange={this.handleInputChange}
+                            error={error}
+                        />
+
+                        <SubmitButton loading={loading}>
+                            {loading ? (
+                                <FaSpinner color="#fff" size={14} />
+                            ) : (
+                                <FaPlus color="#fff" size={14} />
+                            )}
+                        </SubmitButton>
+                    </div>
+                    {error && <span>{error}</span>}
                 </Form>
 
                 <List>

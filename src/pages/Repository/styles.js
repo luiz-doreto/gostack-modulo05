@@ -101,3 +101,29 @@ export const IssueList = styled.ul`
         }
     }
 `;
+
+export const IssueFilter = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+
+    button {
+        padding: 5px;
+        margin-left: 2px;
+    }
+`;
+
+export const IssuePaginate = styled.div`
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+
+    button {
+        padding: 5px;
+        margin-left: 2px;
+    }
+
+    button[disabled] {
+        color: #dddd;
+    }
+`;
